@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIVA MedBot | UAEM - Knowledge Representation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0058bc",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#0070eb",
+                        "secondary": "#5d5e63",
+                        "surface": "#f9f9ff",
+                        "surface-container": "#ecedf9",
+                        "surface-container-low": "#f1f3fe",
+                        "surface-container-high": "#e6e8f3",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#181c23",
+                        "on-surface-variant": "#414755",
+                        "outline": "#717786",
+                        "outline-variant": "#c1c6d7",
+                        "background": "#f9f9ff",
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-card {
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+        .active-nav { background: #0070eb !important; color: #ffffff !important; }
+        .active-nav span { color: #ffffff !important; }
+        .body-zone {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            fill: rgba(173,198,255,0.15);
+            stroke: #c1c6d7;
+            stroke-width: 1.5;
+        }
+        .body-zone:hover { fill: rgba(0,88,188,0.2); stroke: #0058bc; }
+        .body-zone.active { fill: rgba(0,112,235,0.28); stroke: #0058bc; stroke-width: 2.5; }
+        .body-zone.has-selected { fill: rgba(52,211,153,0.2); stroke: #059669; stroke-width: 2; }
+        .results-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .results-modal.open { display: flex; }
+        .results-sheet {
+            background: white;
+            border-radius: 28px 28px 0 0;
+            width: 100%;
+            max-width: 800px;
+            max-height: 82vh;
+            overflow-y: auto;
+            padding-bottom: 40px;
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
+            animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .result-card-main {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+            border: 1.5px solid #bfdbfe;
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-background text-on-surface overflow-hidden">
+
+<!-- HEADER -->
+<header class="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-10 bg-white/80 backdrop-blur-xl border-b border-outline-variant/20 shadow-sm z-50">
+    <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
+                <span class="material-symbols-outlined text-white" style="font-size:18px">ecg_heart</span>
+            </div>
+            <h1 class="text-xl font-bold text-primary tracking-tight">SIVA MedBot</h1>
+        </div>
+        <div class="h-5 w-px bg-outline-variant/50"></div>
+        <span class="text-sm text-on-surface-variant">UAEM · Knowledge Representation</span>
+    </div>
+    <nav class="hidden md:flex items-center gap-6">
+        <a href="#" class="text-sm font-semibold text-primary border-b-2 border-primary pb-0.5">Dashboard</a>
+        <a href="#" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Análisis</a>
+        <a href="#" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Historial</a>
+    </nav>
+    <div class="flex items-center gap-3">
+        <div id="header-badge" class="hidden items-center gap-2 bg-blue-50 text-primary text-xs font-bold px-3 py-1.5 rounded-full">
+            <span class="material-symbols-outlined" style="font-size:14px">check_circle</span>
+            <span id="header-count">0 síntomas</span>
+        </div>
+        <button class="p-2 rounded-full hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+        </button>
+        <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shadow">SM</div>
+    </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="flex h-screen pt-16 overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 flex flex-col border-r border-outline-variant/30 bg-surface-container-lowest flex-shrink-0 overflow-y-auto shadow-sm">
+        <div class="p-5 pb-3">
+            <h2 class="text-base font-semibold text-on-surface">Zonas del Cuerpo</h2>
+            <p class="text-xs text-on-surface-variant mt-0.5">Navegador clínico</p>
+        </div>
+        <nav class="flex-1 px-3 space-y-0.5" id="zone-nav"></nav>
+        <div class="p-4 border-t border-outline-variant/30 space-y-2.5 mt-2">
+            <button onclick="analizar()"
+                class="w-full bg-primary text-white py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 hover:shadow-lg transition-all active:scale-95">
+                <span class="material-symbols-outlined" style="font-size:18px">analytics</span>
+                Analizar Síntomas
+            </button>
+            <button onclick="limpiarTodo()"
+                class="w-full text-on-surface-variant border border-outline-variant/50 py-2.5 px-4 rounded-xl text-xs font-medium flex items-center justify-center gap-2 hover:bg-surface-container transition-colors">
+                <span class="material-symbols-outlined" style="font-size:16px">restart_alt</span>
+                Limpiar selección
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 flex overflow-hidden bg-background">
+
+        <!-- BODY VISUALIZER -->
+        <section class="flex-1 flex flex-col items-center justify-center relative bg-surface-container-low border-r border-outline-variant/20 overflow-hidden">
+            <div class="absolute top-6 left-8">
+                <h3 class="text-xl font-semibold text-on-surface" id="zone-title">Selecciona una zona</h3>
+                <p class="text-sm text-on-surface-variant mt-1" id="zone-desc">Haz clic en una zona del cuerpo para comenzar</p>
+            </div>
+            <div class="absolute top-6 right-6 flex gap-3">
+                <div class="glass-card px-4 py-2.5 rounded-2xl text-center">
+                    <div class="text-xl font-bold text-primary" id="stat-selected">0</div>
+                    <div class="text-xs text-on-surface-variant">Síntomas</div>
+                </div>
+                <div class="glass-card px-4 py-2.5 rounded-2xl text-center">
+                    <div class="text-xl font-bold text-primary">15</div>
+                    <div class="text-xs text-on-surface-variant">Enfermedades</div>
+                </div>
+                <div class="glass-card px-4 py-2.5 rounded-2xl text-center">
+                    <div class="text-xl font-bold text-primary">45+</div>
+                    <div class="text-xs text-on-surface-variant">Indicadores</div>
+                </div>
+            </div>
+
+            <!-- SVG BODY - BIGGER -->
+            <div class="relative flex items-center justify-center">
+                <svg style="height: min(74vh, 640px); width: auto;" viewBox="0 0 230 490" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="bg" cx="50%" cy="40%" r="50%">
+                            <stop offset="0%" stop-color="#d8e2ff" stop-opacity="0.25"/>
+                            <stop offset="100%" stop-color="#d8e2ff" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
+                    <ellipse cx="115" cy="210" rx="110" ry="210" fill="url(#bg)"/>
+
+                    <!-- CABEZA -->
+                    <ellipse class="body-zone" id="zone-cabeza" cx="115" cy="50" rx="40" ry="45" onclick="selectZona('Cabeza')"/>
+                    <text x="115" y="53" text-anchor="middle" font-size="9.5" fill="#414755" font-family="Inter" pointer-events="none" font-weight="600">Cabeza</text>
+
+                    <!-- OJOS -->
+                    <ellipse class="body-zone" id="zone-ojos" cx="115" cy="34" rx="26" ry="13" onclick="selectZona('Ojos')"/>
+                    <text x="115" y="37" text-anchor="middle" font-size="8.5" fill="#414755" font-family="Inter" pointer-events="none" font-weight="600">Ojos</text>
+
+                    <!-- GARGANTA -->
+                    <path class="body-zone" id="zone-nariz"
+                        d="M 100 93 C 100 93 104 100 115 100 C 126 100 130 93 130 93 L 130 114 C 126 118 115 118 104 114 Z"
+                        onclick="selectZona('Nariz/Garganta')"/>
+                    <text x="115" y="110" text-anchor="middle" font-size="7.5" fill="#414755" font-family="Inter" pointer-events="none" font-weight="600">Garganta</text>
+
+                    <!-- PECHO IZQ -->
+                    <path class="body-zone" id="zone-pecho"
+                        d="M 62 116 C 50 118 44 130 44 144 L 44 194 C 44 202 50 206 58 206 L 115 206 L 115 116 Z"
+                        onclick="selectZona('Pecho')"/>
+                    <text x="78" y="165" text-anchor="middle" font-size="9" fill="#414755" font-family="Inter" pointer-events="none" font-weight="600">Pecho</text>
+
+                    <!-- PECHO DER -->
+                    <path class="body-zone" id="zone-pecho2"
+                        d="M 168 116 C 180 118 186 130 186 144 L 186 194 C 186 202 180 206 172 206 L 115 206 L 115 116 Z"
+                        onclick="selectZona('Pecho')"/>
+
+                    <!-- ABDOMEN -->
+                    <path class="body-zone" id="zone-abdomen"
+                        d="M 52 208 L 178 208 L 174 278 C 172 288 146 292 115 292 C 84 292 58 288 56 278 Z"
+                        onclick="selectZona('Abdomen')"/>
+                    <text x="115" y="252" text-anchor="middle" font-size="9" fill="#414755" font-family="Inter" pointer-events="none" font-weight="600">Abdomen</text>
+
+                    <!-- BRAZO IZQ -->
+                    <path class="body-zone" id="zone-general"
+                        d="M 16 120 C 8 120 4 132 4 144 L 4 228 C 4 238 10 242 20 242 L 44 242 L 50 148 C 50 132 40 120 30 120 Z"
+                        onclick="selectZona('Cuerpo General')"/>
+                    <text x="24" y="188" text-anchor="middle" font-size="8" fill="#414755" font-family="Inter" pointer-events="none" font-weight="600">General</text>
+
+                    <!-- BRAZO DER -->
+                    <path class="body-zone" id="zone-general2"
+                        d="M 214 120 C 222 120 226 132 226 144 L 226 228 C 226 238 220 242 210 242 L 186 242 L 180 148 C 180 132 190 120 200 120 Z"
+                        onclick="selectZona('Cuerpo General')"/>
+
+                    <!-- PIERNA IZQ -->
+                    <path class="body-zone" id="zone-piel"
+                        d="M 56 294 L 108 294 L 110 430 C 110 442 102 448 92 448 L 74 448 C 64 448 56 442 55 430 Z"
+                        onclick="selectZona('Piel')"/>
+                    <text x="82" y="374" text-anchor="middle" font-size="8.5" fill="#414755" font-family="Inter" pointer-events="none" font-weight="600">Piel</text>
+
+                    <!-- PIERNA DER -->
+                    <path class="body-zone" id="zone-piel2"
+                        d="M 122 294 L 174 294 L 175 430 C 176 442 168 448 158 448 L 140 448 C 130 448 122 442 120 430 Z"
+                        onclick="selectZona('Piel')"/>
+                </svg>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-1">Haz clic en una zona del cuerpo</p>
+        </section>
+
+        <!-- SYMPTOM PANEL -->
+        <section class="w-96 flex flex-col bg-surface-container-lowest overflow-hidden">
+            <div class="px-5 pt-5 pb-3 border-b border-outline-variant/20">
+                <div class="flex justify-between items-center">
+                    <h4 class="text-base font-semibold text-on-surface">Síntomas</h4>
+                    <span class="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full" id="symptom-count-badge">Selecciona una zona</span>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto px-4 py-3 space-y-2.5" id="symptoms-list">
+                <div class="flex flex-col items-center justify-center h-64 text-center gap-3 mt-8">
+                    <span class="material-symbols-outlined text-5xl text-on-surface-variant/30">touch_app</span>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">Selecciona una zona del<br>cuerpo para ver los síntomas</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-outline-variant/20 bg-surface-container-low">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <span class="text-white text-xs font-bold" id="count-num">0</span>
+                    </div>
+                    <span class="text-xs text-on-surface-variant">síntoma(s) seleccionado(s)</span>
+                </div>
+                <button onclick="analizar()"
+                    class="w-full bg-primary text-white py-3.5 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95">
+                    <span class="material-symbols-outlined" style="font-size:18px">biotech</span>
+                    Analizar Síntomas
+                </button>
+                <p class="text-center text-xs text-on-surface-variant mt-3 leading-relaxed">
+                    Los resultados son referenciales y no reemplazan una consulta médica.
+                </p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- RESULTS MODAL -->
+<div class="results-modal" id="results-modal">
+    <div class="results-sheet">
+        <div class="w-10 h-1 bg-outline-variant/40 rounded-full mx-auto mt-4 mb-3"></div>
+        <div class="flex justify-between items-start px-6 pb-4 border-b border-outline-variant/20">
+            <div>
+                <h3 class="text-xl font-bold text-on-surface">Resultados del Análisis</h3>
+                <p class="text-sm text-on-surface-variant mt-1" id="results-subtitle"></p>
+            </div>
+            <button onclick="cerrarModal()"
+                class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors">
+                <span class="material-symbols-outlined text-on-surface-variant" style="font-size:18px">close</span>
+            </button>
+        </div>
+        <div class="px-6 pt-5" id="results-body"></div>
+    </div>
+</div>
+
+<script>
+const zonaConfig = [
+    { id:'Cabeza', navId:'Cabeza', icon:'psychology', svgIds:['zone-cabeza'], desc:'Dolor, mareos, sensibilidad neurológica',
+      sintomas:[
+        {key:'dolor_cabeza',label:'Dolor de Cabeza (Cefalea)'},
+        {key:'mareos',label:'Mareos o Vértigo'},
+        {key:'sensibilidad_luz',label:'Sensibilidad a la Luz'},
+        {key:'sensibilidad_sonido',label:'Sensibilidad al Sonido'},
+        {key:'zumbido_oidos',label:'Zumbido en Oídos'},
+        {key:'confusion_mental',label:'Confusión Mental'},
+        {key:'vision_borrosa',label:'Visión Borrosa'},
+        {key:'desmayos',label:'Desmayos'},
+    ]},
+    { id:'Ojos', navId:'Ojos', icon:'visibility', svgIds:['zone-ojos'], desc:'Rojez, secreción, picazón ocular',
+      sintomas:[
+        {key:'ojos_rojos',label:'Ojos Rojos'},
+        {key:'picazon_ojos',label:'Picazón en Ojos'},
+        {key:'secrecion_ocular',label:'Secreción Ocular'},
+        {key:'lagrimeo',label:'Lagrimeo Excesivo'},
+        {key:'ojos_hinchados',label:'Ojos Hinchados'},
+        {key:'vision_borrosa',label:'Visión Borrosa'},
+        {key:'dolor_detras_ojos',label:'Dolor Detrás de los Ojos'},
+    ]},
+    { id:'Nariz/Garganta', navId:'Nariz', icon:'air', svgIds:['zone-nariz'], desc:'Congestión, dolor, pérdida del olfato',
+      sintomas:[
+        {key:'congestion_nasal',label:'Congestión Nasal'},
+        {key:'perdida_olfato',label:'Pérdida del Olfato/Gusto'},
+        {key:'dolor_garganta',label:'Dolor de Garganta'},
+        {key:'dificultad_tragar',label:'Dificultad para Tragar'},
+        {key:'sangrado_nasal',label:'Sangrado Nasal'},
+        {key:'ronquera',label:'Ronquera'},
+        {key:'estornudos',label:'Estornudos Frecuentes'},
+        {key:'mal_aliento',label:'Mal Aliento'},
+        {key:'mucosidad',label:'Mucosidad'},
+        {key:'moco_amarillo_verde',label:'Moco Amarillo / Verde'},
+    ]},
+    { id:'Pecho', navId:'Pecho', icon:'pulmonology', svgIds:['zone-pecho','zone-pecho2'], desc:'Tos, respiración, dolor torácico',
+      sintomas:[
+        {key:'tos',label:'Tos'},
+        {key:'tos_persistente',label:'Tos Persistente'},
+        {key:'tos_nocturna',label:'Tos Nocturna'},
+        {key:'dificultad_respirar',label:'Dificultad para Respirar'},
+        {key:'dolor_pecho',label:'Dolor en el Pecho'},
+        {key:'silbido_al_respirar',label:'Silbido al Respirar'},
+        {key:'palpitaciones',label:'Palpitaciones'},
+    ]},
+    { id:'Abdomen', navId:'Abdomen', icon:'medical_services', svgIds:['zone-abdomen'], desc:'Náuseas, dolor, problemas digestivos',
+      sintomas:[
+        {key:'nauseas',label:'Náuseas'},
+        {key:'vomito',label:'Vómito'},
+        {key:'diarrea',label:'Diarrea'},
+        {key:'dolor_abdominal',label:'Dolor Abdominal'},
+        {key:'dolor_estomago',label:'Dolor de Estómago'},
+        {key:'dolor_lado_derecho',label:'Dolor Lado Derecho (Agudo)'},
+        {key:'perdida_apetito',label:'Pérdida de Apetito'},
+        {key:'distension_abdominal',label:'Distensión Abdominal'},
+        {key:'acidez',label:'Acidez Estomacal'},
+        {key:'orina_oscura',label:'Orina Oscura'},
+    ]},
+    { id:'Cuerpo General', navId:'General', icon:'accessibility_new', svgIds:['zone-general','zone-general2'], desc:'Fiebre, fatiga, dolor muscular generalizado',
+      sintomas:[
+        {key:'fiebre',label:'Fiebre'},
+        {key:'escalofrios',label:'Escalofríos'},
+        {key:'fatiga',label:'Fatiga / Cansancio Extremo'},
+        {key:'dolor_muscular',label:'Dolor Muscular'},
+        {key:'debilidad_general',label:'Debilidad General'},
+        {key:'sudoracion_excesiva',label:'Sudoración Excesiva'},
+        {key:'ganglios_inflamados',label:'Ganglios Inflamados'},
+        {key:'manos_frias',label:'Manos Frías'},
+        {key:'perdida_de_peso',label:'Pérdida de Peso'},
+        {key:'temblores',label:'Temblores'},
+        {key:'palidez',label:'Palidez'},
+    ]},
+    { id:'Piel', navId:'Piel', icon:'healing', svgIds:['zone-piel','zone-piel2'], desc:'Sarpullido, picazón, cambios en la piel',
+      sintomas:[
+        {key:'sarpullido',label:'Sarpullido / Erupción'},
+        {key:'picazon',label:'Picazón en la Piel'},
+        {key:'piel_amarilla',label:'Piel Amarilla (Ictericia)'},
+        {key:'moretones_faciles',label:'Moretones con Facilidad'},
+        {key:'piel_seca',label:'Piel Seca'},
+    ]},
+];
+
+let zonaActiva = null;
+let seleccionados = {};
+
+function init() {
+    const nav = document.getElementById('zone-nav');
+    zonaConfig.forEach(zona => {
+        const btn = document.createElement('button');
+        btn.id = `nav-${zona.navId}`;
+        btn.className = 'w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-150 hover:bg-surface-container-high text-on-surface-variant text-left';
+        btn.onclick = () => selectZona(zona.id);
+        btn.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size:22px">${zona.icon}</span>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-on-surface">${zona.id}</div>
+                <div class="text-xs truncate nav-desc-${zona.navId}" style="color:#414755">${zona.desc}</div>
+            </div>`;
+        nav.appendChild(btn);
+    });
+}
+
+function selectZona(zonaId) {
+    zonaActiva = zonaId;
+    const zona = zonaConfig.find(z => z.id === zonaId);
+    if (!zona) return;
+    document.querySelectorAll('#zone-nav button').forEach(b => b.classList.remove('active-nav'));
+    const activeBtn = document.getElementById(`nav-${zona.navId}`);
+    if (activeBtn) activeBtn.classList.add('active-nav');
+    document.querySelectorAll('.body-zone').forEach(z => z.classList.remove('active'));
+    zona.svgIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+    });
+    document.getElementById('zone-title').textContent = zona.id;
+    document.getElementById('zone-desc').textContent = zona.desc;
+    const sel = zona.sintomas.filter(s => s.key in seleccionados).length;
+    document.getElementById('symptom-count-badge').textContent =
+        sel > 0 ? `${sel} de ${zona.sintomas.length} seleccionados` : `${zona.sintomas.length} disponibles`;
+    renderSintomas(zona.sintomas);
+}
+
+function renderSintomas(sintomas) {
+    const list = document.getElementById('symptoms-list');
+    list.innerHTML = sintomas.map(s => {
+        const isSelected = s.key in seleccionados;
+        const intensidad = seleccionados[s.key] || null;
+        return `
+        <div class="rounded-2xl border transition-all duration-150 overflow-hidden ${isSelected ? 'border-blue-200 bg-blue-50/60' : 'border-outline-variant/30 bg-surface-container-low'}">
+            <button class="w-full flex items-center gap-3 p-3.5 text-left" onclick="toggleSintoma('${s.key}')">
+                <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? 'bg-primary border-primary' : 'border-outline-variant/60 bg-white'}">
+                    ${isSelected ? '<span class="material-symbols-outlined text-white" style="font-size:13px">check</span>' : ''}
+                </div>
+                <span class="text-sm font-medium flex-1 ${isSelected ? 'text-primary' : 'text-on-surface'}">${s.label}</span>
+            </button>
+            ${isSelected ? `
+            <div class="px-3.5 pb-3">
+                <div class="grid grid-cols-3 gap-1.5 p-1 bg-white/70 rounded-xl">
+                    <button onclick="setIntensidad('${s.key}','leve')"
+                        class="py-2 text-xs font-semibold rounded-lg transition-all ${intensidad==='leve' ? 'bg-white shadow-sm text-emerald-700 border border-emerald-200' : 'text-on-surface-variant hover:bg-white/80'}">
+                        😌 Leve
+                    </button>
+                    <button onclick="setIntensidad('${s.key}','moderado')"
+                        class="py-2 text-xs font-semibold rounded-lg transition-all ${intensidad==='moderado' ? 'bg-white shadow-sm text-amber-700 border border-amber-200' : 'text-on-surface-variant hover:bg-white/80'}">
+                        😣 Moderado
+                    </button>
+                    <button onclick="setIntensidad('${s.key}','intenso')"
+                        class="py-2 text-xs font-semibold rounded-lg transition-all ${intensidad==='intenso' ? 'bg-white shadow-sm text-red-700 border border-red-200' : 'text-on-surface-variant hover:bg-white/80'}">
+                        😫 Intenso
+                    </button>
+                </div>
+            </div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function toggleSintoma(key) {
+    if (key in seleccionados) { delete seleccionados[key]; }
+    else { seleccionados[key] = 'moderado'; }
+    actualizarContador();
+    actualizarSVG();
+    if (zonaActiva) {
+        const zona = zonaConfig.find(z => z.id === zonaActiva);
+        if (zona) renderSintomas(zona.sintomas);
+    }
+}
+
+function setIntensidad(key, intensidad) {
+    seleccionados[key] = intensidad;
+    if (zonaActiva) {
+        const zona = zonaConfig.find(z => z.id === zonaActiva);
+        if (zona) renderSintomas(zona.sintomas);
+    }
+}
+
+function actualizarContador() {
+    const total = Object.keys(seleccionados).length;
+    document.getElementById('count-num').textContent = total;
+    document.getElementById('stat-selected').textContent = total;
+    const badge = document.getElementById('header-badge');
+    if (total > 0) { badge.classList.remove('hidden'); badge.classList.add('flex'); document.getElementById('header-count').textContent = `${total} síntomas`; }
+    else { badge.classList.add('hidden'); badge.classList.remove('flex'); }
+    zonaConfig.forEach(zona => {
+        const el = document.querySelector(`.nav-desc-${zona.navId}`);
+        if (el) {
+            const sel = zona.sintomas.filter(s => s.key in seleccionados).length;
+            if (sel > 0) { el.textContent = `${sel} seleccionado(s)`; el.style.color = '#0058bc'; el.style.fontWeight = '600'; }
+            else { el.textContent = zona.desc; el.style.color = '#414755'; el.style.fontWeight = ''; }
+        }
+    });
+    if (zonaActiva) {
+        const zona = zonaConfig.find(z => z.id === zonaActiva);
+        if (zona) {
+            const sel = zona.sintomas.filter(s => s.key in seleccionados).length;
+            document.getElementById('symptom-count-badge').textContent =
+                sel > 0 ? `${sel} de ${zona.sintomas.length} seleccionados` : `${zona.sintomas.length} disponibles`;
+        }
+    }
+}
+
+function actualizarSVG() {
+    zonaConfig.forEach(zona => {
+        const tieneSel = zona.sintomas.some(s => s.key in seleccionados);
+        zona.svgIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.classList.contains('active')) el.classList.toggle('has-selected', tieneSel);
+        });
+    });
+}
+
+function limpiarTodo() {
+    seleccionados = {};
+    actualizarContador();
+    actualizarSVG();
+    if (zonaActiva) {
+        const zona = zonaConfig.find(z => z.id === zonaActiva);
+        if (zona) renderSintomas(zona.sintomas);
+    }
+}
+
+async function analizar() {
+    if (Object.keys(seleccionados).length === 0) { alert('Por favor selecciona al menos un síntoma.'); return; }
+    document.getElementById('results-body').innerHTML = `
+        <div class="flex flex-col items-center justify-center py-20 gap-4">
+            <span class="material-symbols-outlined text-5xl text-primary">autorenew</span>
+            <p class="text-sm text-on-surface-variant">Procesando síntomas...</p>
+        </div>`;
+    document.getElementById('results-subtitle').textContent = '';
+    document.getElementById('results-modal').classList.add('open');
+    try {
+        const response = await fetch('/analizar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sintomas: seleccionados })
+        });
+        const data = await response.json();
+        if (data.error) { document.getElementById('results-body').innerHTML = `<p class="text-center text-on-surface-variant py-12">${data.error}</p>`; return; }
+        document.getElementById('results-subtitle').textContent = `${data.total_sintomas} síntomas analizados · ${data.resultados.length} posibles condiciones encontradas`;
+        mostrarResultados(data.resultados);
+    } catch(e) {
+        document.getElementById('results-body').innerHTML = `<p class="text-center text-red-500 py-12">Error al conectar con el servidor.</p>`;
+    }
+}
+
+function mostrarResultados(resultados) {
+    if (!resultados.length) {
+        document.getElementById('results-body').innerHTML = `<div class="flex flex-col items-center justify-center py-16 gap-3"><span class="material-symbols-outlined text-5xl text-on-surface-variant/30">search_off</span><p class="text-sm text-on-surface-variant">No se encontraron coincidencias. Intenta con más síntomas.</p></div>`;
+        return;
+    }
+    const maxPuntaje = resultados[0].puntaje;
+    const rankLabels = ['Resultado Principal','2° Posibilidad','3° Posibilidad','4° Posibilidad','5° Posibilidad'];
+    const confianzaStyle = { 'Alta':'bg-emerald-50 text-emerald-700 border border-emerald-200', 'Media':'bg-amber-50 text-amber-700 border border-amber-200', 'Baja':'bg-red-50 text-red-700 border border-red-200' };
+    const tagStyle = { 'leve':'bg-emerald-50 text-emerald-700', 'moderado':'bg-amber-50 text-amber-700', 'intenso':'bg-red-50 text-red-700' };
+    let html = '';
+    resultados.forEach((r, i) => {
+        const pct = Math.round((r.puntaje / maxPuntaje) * 100);
+        const isMain = i === 0;
+        const tags = r.coincidentes.map(c => `<span class="text-xs px-2.5 py-1 rounded-full font-medium ${tagStyle[c.intensidad]||'bg-surface-container text-on-surface-variant'}">${c.sintoma.replace(/_/g,' ')} · ${c.intensidad}</span>`).join('');
+        const tratItems = r.tratamiento.map(t => `<span class="text-xs bg-blue-50 text-primary px-2.5 py-1 rounded-full font-medium">${t}</span>`).join('');
+        html += `
+        <div class="rounded-2xl p-5 mb-4 ${isMain ? 'result-card-main' : 'bg-surface-container-low border border-outline-variant/20'}">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <div class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">${rankLabels[i]||`${i+1}° resultado`}</div>
+                    <div class="text-xl font-bold text-on-surface tracking-tight">${r.nombre}</div>
+                    <div class="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1">
+                        <span class="material-symbols-outlined" style="font-size:13px">category</span>${r.tipo}
+                    </div>
+                </div>
+                <span class="text-xs font-bold px-3 py-1.5 rounded-full ${confianzaStyle[r.confianza]||''}">${r.confianza}</span>
+            </div>
+            <div class="flex items-center gap-3 mb-3">
+                <div class="flex-1 bg-outline-variant/20 rounded-full h-1.5 overflow-hidden">
+                    <div class="h-full bg-primary rounded-full" style="width:${pct}%"></div>
+                </div>
+                <span class="text-sm font-bold text-primary min-w-[38px] text-right">${pct}%</span>
+            </div>
+            <p class="text-sm text-on-surface-variant mb-3 leading-relaxed">${r.descripcion}</p>
+            <div class="mb-3">
+                <div class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Síntomas detectados</div>
+                <div class="flex flex-wrap gap-1.5">${tags}</div>
+            </div>
+            <div class="bg-white rounded-xl p-3 mb-2">
+                <div class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Tratamiento sugerido</div>
+                <div class="flex flex-wrap gap-1.5">${tratItems}</div>
+            </div>
+            <div class="flex items-start gap-2 bg-red-50 rounded-xl p-3 text-red-700">
+                <span class="material-symbols-outlined flex-shrink-0 mt-0.5" style="font-size:16px">emergency</span>
+                <span class="text-xs leading-relaxed">${r.cuando_ver_medico}</span>
+            </div>
+        </div>`;
+    });
+    document.getElementById('results-body').innerHTML = html;
+}
+
+function cerrarModal() { document.getElementById('results-modal').classList.remove('open'); }
+document.getElementById('results-modal').addEventListener('click', function(e) { if (e.target === this) cerrarModal(); });
+
+init();
+</script>
+</body>
+</html>
